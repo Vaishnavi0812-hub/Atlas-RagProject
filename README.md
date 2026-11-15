@@ -50,16 +50,6 @@ Host ports are configurable in `.env` and were chosen not to clash with other lo
 docker compose exec backend pytest
 ```
 
-## Roadmap
 
-- [x] **Stage 1: Foundation.** Docker infrastructure, FastAPI core, Alembic, datastore bootstrap, health checks, design system and application shell
-- [ ] **Stage 2: Accounts & tenancy.** Authentication, organizations, invitations, roles, workspaces
-- [ ] **Stage 3: Document ingestion.** Upload, background pipeline, chunking, embeddings, document library
-- [ ] **Stage 4: Knowledge graph.** LLM entity and relationship extraction, entity resolution, Neo4j graph, graph explorer
-- [ ] **Stage 5: GraphRAG engine & chat.** Standard RAG, GraphRAG and Hybrid retrieval; multi-hop QA; streaming chat with citations
-- [ ] **Stage 6: Intelligence modules.** Vendor, contract, compliance and financial intelligence; comparison lab; evaluation framework
-- [ ] **Stage 7: Analytics & hardening.** Analytics dashboard, security review, polish
 
-## Design
 
-The visual identity is editorial and enterprise in tone. The palette is Graphite `#202124`, Persimmon `#FF7849`, Warm Sand `#F4EFE6`, Cobalt `#4776D0` and Muted Gold `#D6AD64`. Headlines are set in Fraunces, interface text in Instrument Sans, and data labels in JetBrains Mono.
