@@ -11,6 +11,8 @@ qdrant-client==1.12.2
 redis==5.2.1
 httpx==0.28.1
 python-multipart==0.0.20
+bcrypt==4.2.1
+pyjwt==2.10.1
 
 # testing
 pytest==8.3.4

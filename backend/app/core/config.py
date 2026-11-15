@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-to-a-long-random-string"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 12
+    bcrypt_rounds: int = 12
+    session_cookie_name: str = "atlas_session"
+    invitation_expire_days: int = 7
+    frontend_url: str = "http://localhost:5180"
+    # Login throttling: attempts allowed per window, per email+IP.
+    login_rate_limit: int = 10
+    login_rate_window_seconds: int = 15 * 60
 
     # --- PostgreSQL ---
     database_url: str = "postgresql+asyncpg://atlas:atlas_dev_password@localhost:5442/atlas"

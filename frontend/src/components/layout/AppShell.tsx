@@ -65,7 +65,9 @@ export function AppShell() {
         <main className="scrollbar-thin flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
-              key={location.pathname}
+              // Keyed by top-level section so nested tabs (e.g. settings) animate
+              // within their own layout instead of re-mounting the whole page.
+              key={location.pathname.split("/")[1] || "root"}
               variants={pageVariants}
               initial="initial"
               animate="animate"

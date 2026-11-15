@@ -1,14 +1,57 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { BarChart3, FileStack, FlaskConical, MessagesSquare, Network, Scale, Settings } from "lucide-react";
+import { Navigate, createBrowserRouter, RouterProvider } from "react-router-dom";
+import { BarChart3, FileStack, FlaskConical, MessagesSquare, Network, Scale } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
+import { RedirectIfAuthed, RequireAuth } from "@/components/auth/Guards";
+import { TenantProvider } from "@/context/TenantContext";
 import { OverviewPage } from "@/pages/OverviewPage";
 import { SystemPage } from "@/pages/SystemPage";
 import { UpcomingPage } from "@/pages/UpcomingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { InvitePage } from "@/pages/auth/InvitePage";
+import { OnboardingPage } from "@/pages/auth/OnboardingPage";
+import { SettingsLayout } from "@/pages/settings/SettingsLayout";
+import { ProfileSettings } from "@/pages/settings/ProfileSettings";
+import { OrganizationSettings } from "@/pages/settings/OrganizationSettings";
+import { MembersSettings } from "@/pages/settings/MembersSettings";
+import { WorkspacesSettings } from "@/pages/settings/WorkspacesSettings";
+import { ActivitySettings } from "@/pages/settings/ActivitySettings";
 
 const router = createBrowserRouter([
   {
-    element: <AppShell />,
+    path: "/login",
+    element: (
+      <RedirectIfAuthed>
+        <LoginPage />
+      </RedirectIfAuthed>
+    ),
+  },
+  {
+    path: "/register",
+    element: (
+      <RedirectIfAuthed>
+        <RegisterPage />
+      </RedirectIfAuthed>
+    ),
+  },
+  { path: "/invite/:token", element: <InvitePage /> },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireAuth allowNoOrg>
+        <OnboardingPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    element: (
+      <RequireAuth>
+        <TenantProvider>
+          <AppShell />
+        </TenantProvider>
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <OverviewPage /> },
       { path: "system", element: <SystemPage /> },
@@ -98,17 +141,15 @@ const router = createBrowserRouter([
       },
       {
         path: "settings",
-        element: (
-          <UpcomingPage
-            eyebrow="Administration · Settings"
-            title="Settings"
-            description="Manage your organization, members, roles and workspaces."
-            icon={Settings}
-            emptyTitle="Settings arrive with accounts"
-            emptyDescription="Organization members, invitations, roles and workspace permissions are managed here."
-            stage={2}
-          />
-        ),
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <Navigate to="profile" replace /> },
+          { path: "profile", element: <ProfileSettings /> },
+          { path: "organization", element: <OrganizationSettings /> },
+          { path: "members", element: <MembersSettings /> },
+          { path: "workspaces", element: <WorkspacesSettings /> },
+          { path: "activity", element: <ActivitySettings /> },
+        ],
       },
       { path: "*", element: <NotFoundPage /> },
     ],

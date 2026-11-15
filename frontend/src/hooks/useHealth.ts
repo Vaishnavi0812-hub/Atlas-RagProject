@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { getHealth } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export function useHealth() {
   return useQuery({
     queryKey: ["health"],
-    queryFn: getHealth,
+    queryFn: api.health,
     refetchInterval: 30_000,
     retry: 1,
   });

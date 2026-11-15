@@ -26,6 +26,12 @@
     @apply outline-none ring-2 ring-persimmon-500 ring-offset-2 ring-offset-sand-100;
   }
 
+  /* Edge/IE add their own password reveal & clear buttons; ATLAS provides one. */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
+
   h1,
   h2,
   h3 {

@@ -18,6 +18,16 @@ ATLAS turns enterprise documents (contracts, financial statements, policies, tec
 
 Tenant isolation is enforced in every store. PostgreSQL rows, Qdrant payloads and Neo4j nodes all carry `organization_id` and `workspace_id`, and the backend scopes every query by them.
 
+## Accounts, organizations and access control
+
+- **Authentication.** Passwords are hashed with bcrypt (SHA-256 pre-hash, so long passphrases count in full). Sessions are JWTs delivered as an `httpOnly`, `SameSite=Lax` cookie; API clients can send `Authorization: Bearer` instead. Logging out revokes that token in Redis, and changing a password invalidates every other session. Login is rate-limited per email and IP.
+- **Organizations.** Users can belong to several organizations and switch between them. Invitations are single-use, expire after 7 days, and are bound to the invited email address. Only a SHA-256 hash of each invitation token is stored.
+- **Roles.** `owner > admin > editor > viewer`. Members can only manage people at or below their own role, and an organization always keeps at least one owner.
+- **Workspaces.** Workspaces are either *organization-wide* (open to every member, who acts with their organization role) or *restricted* (open to admins plus explicitly granted members). A grant never exceeds the member's organization role.
+- **Enforcement.** Every check happens in FastAPI dependencies (`app/api/deps.py`). Hiding a button in the UI is never the only safeguard. Requests for another tenant's resources return `404`, so the API never confirms that they exist.
+- **Deletion.** Deleting a workspace or organization purges its Qdrant vectors and Neo4j nodes *before* the PostgreSQL rows, so a failure cannot leave orphaned data behind.
+- **Audit trail.** Membership, invitation and workspace changes are written to an activity log, filtered by what each viewer is allowed to see.
+
 ## Getting started
 
 Prerequisites: Docker Desktop and Node.js 20+.
@@ -50,6 +60,4 @@ Host ports are configurable in `.env` and were chosen not to clash with other lo
 docker compose exec backend pytest
 ```
 
-
-
-
+Tests use a separate `atlas_test` database and Redis DB 15, so they never touch development data.
