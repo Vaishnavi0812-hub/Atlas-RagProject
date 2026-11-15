@@ -1,0 +1,35 @@
+PRODUCT X - AUTOMATED RAIL-SWITCHING UNIT
+Technical Specification, Revision 4.2
+Owner: Northwind Engineering, Rail Systems Division
+Document status: Approved, 12 January 2026
+
+1. OVERVIEW
+
+Product X is an automated rail-switching unit that repositions track points on freight and light-rail networks. Each unit is controlled remotely from a signalling centre and reports its position and health every five seconds.
+
+2. MAJOR COMPONENTS
+
+2.1 Actuation. Product X uses the HX-200 hydraulic actuator to move the switch blades. The HX-200 is supplied exclusively by Vendor Alpha Components Ltd. No alternative actuator is currently certified for Product X; qualifying a second source is estimated to take nine to twelve months.
+
+2.2 Control. The ARC-7 control board is manufactured in-house by Northwind Electronics.
+
+2.3 Sensors. Blade-position sensors are sourced from Helix Sensing GmbH under a separate agreement.
+
+3. PERFORMANCE
+
+Switching time: under 4.5 seconds.
+Operating temperature: -30 C to +55 C.
+Mean time between failures: 42,000 operating hours.
+
+4. DEPLOYMENTS
+
+Product X is deployed in the following programmes:
+
+- Project Delta: 240 units for the Contoso Rail freight corridor upgrade.
+- Project Orion: 85 units for the Harbourline light-rail extension.
+
+Any interruption in HX-200 supply directly halts Product X final assembly, because actuators are fitted before factory acceptance testing.
+
+5. COMPLIANCE
+
+Product X is certified to EN 50126 (railway RAMS) and manufactured under Northwind's ISO 9001:2015 quality management system.

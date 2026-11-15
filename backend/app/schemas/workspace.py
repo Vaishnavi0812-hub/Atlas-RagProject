@@ -2,12 +2,35 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.config import settings as app_settings
 from app.core.permissions import Role, WorkspaceVisibility
 from app.schemas.common import clean_name
 
 WorkspaceColor = Literal["persimmon", "cobalt", "gold", "graphite", "sand"]
+
+
+class WorkspaceSettings(BaseModel):
+    """Per-workspace ingestion and access preferences."""
+
+    chunk_size: int = Field(default_factory=lambda: app_settings.default_chunk_size, ge=300, le=4000)
+    chunk_overlap: int = Field(default_factory=lambda: app_settings.default_chunk_overlap, ge=0, le=1000)
+    viewers_can_download: bool = True
+
+    @model_validator(mode="after")
+    def _overlap_below_half(self) -> "WorkspaceSettings":
+        if self.chunk_overlap * 2 > self.chunk_size:
+            raise ValueError("Chunk overlap must be at most half the chunk size.")
+        return self
+
+
+def resolve_workspace_settings(raw: dict | None) -> WorkspaceSettings:
+    """Stored settings merged over defaults; invalid stored values fall back."""
+    try:
+        return WorkspaceSettings(**(raw or {}))
+    except ValueError:
+        return WorkspaceSettings()
 
 
 class WorkspaceCreate(BaseModel):
@@ -32,6 +55,7 @@ class WorkspaceUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
     visibility: WorkspaceVisibility | None = None
     color: WorkspaceColor | None = None
+    settings: WorkspaceSettings | None = None
 
     @field_validator("name")
     @classmethod
@@ -56,6 +80,7 @@ class WorkspaceOut(BaseModel):
     created_at: datetime
     role: Role
     permissions: WorkspacePermissions
+    settings: WorkspaceSettings
 
 
 class WorkspaceMemberOut(BaseModel):

@@ -122,6 +122,12 @@ export type InvitationPreview = {
   expires_at: string;
 };
 
+export type WorkspaceSettings = {
+  chunk_size: number;
+  chunk_overlap: number;
+  viewers_can_download: boolean;
+};
+
 export type Workspace = {
   id: string;
   organization_id: string;
@@ -133,6 +139,7 @@ export type Workspace = {
   created_at: string;
   role: Role;
   permissions: { can_view: boolean; can_edit: boolean; can_manage: boolean };
+  settings: WorkspaceSettings;
 };
 
 export type WorkspaceInput = {
@@ -140,7 +147,104 @@ export type WorkspaceInput = {
   description?: string | null;
   visibility: WorkspaceVisibility;
   color: WorkspaceColor;
+  settings?: WorkspaceSettings;
 };
+
+// ---- Documents
+
+export type DocumentStatus = "queued" | "processing" | "completed" | "failed";
+export type FileType = "pdf" | "docx" | "txt" | "markdown";
+
+export type DocumentItem = {
+  id: string;
+  workspace_id: string;
+  filename: string;
+  file_type: FileType;
+  content_type: string;
+  size_bytes: number;
+  status: DocumentStatus;
+  stage: string;
+  stage_label: string;
+  progress: number;
+  error: string | null;
+  page_count: number | null;
+  char_count: number | null;
+  word_count: number | null;
+  chunk_count: number;
+  entity_count: number;
+  relationship_count: number;
+  uploaded_by_name: string | null;
+  created_at: string;
+  processing_started_at: string | null;
+  processing_completed_at: string | null;
+  processing_ms: number | null;
+  metadata: Record<string, unknown> & { title?: string; author?: string; headings?: string[] };
+};
+
+export type ProcessingEvent = {
+  stage: string;
+  label: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+  detail: string | null;
+};
+
+export type ProcessingJob = {
+  id: string;
+  kind: "ingest" | "reprocess" | "retry";
+  status: "queued" | "running" | "completed" | "failed";
+  attempt: number;
+  stage: string;
+  progress: number;
+  error: string | null;
+  events: ProcessingEvent[];
+  settings_snapshot: { chunk_size?: number; chunk_overlap?: number };
+  triggered_by_name: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+};
+
+export type DocumentDetail = DocumentItem & {
+  content_hash: string;
+  embedding_model: string | null;
+  jobs: ProcessingJob[];
+  can_download: boolean;
+};
+
+export type Chunk = {
+  id: string;
+  chunk_index: number;
+  page_number: number | null;
+  page_end: number | null;
+  char_start: number;
+  char_end: number;
+  token_estimate: number;
+  content: string;
+};
+
+export type ChunkPage = { items: Chunk[]; total: number; offset: number; limit: number };
+
+export type UploadResult = {
+  documents: DocumentItem[];
+  errors: { filename: string; error: string; existing_document_id: string | null }[];
+};
+
+export type DocumentStats = {
+  total: number;
+  completed: number;
+  in_progress: number;
+  failed: number;
+  chunks: number;
+  entities: number;
+  relationships: number;
+  size_bytes: number;
+  graph_extraction_enabled: boolean;
+};
+
+export type DocumentFilters = { q?: string; status?: string; file_type?: string };
 
 export type WorkspaceMember = {
   user_id: string;
@@ -277,4 +381,58 @@ export const api = {
     accept: (token: string) =>
       apiFetch<Membership>(`/invitations/${token}/accept`, { method: "POST" }),
   },
+
+  documents: {
+    base: (orgId: string, wsId: string) => `/organizations/${orgId}/workspaces/${wsId}/documents`,
+    list: (orgId: string, wsId: string, filters: DocumentFilters = {}) => {
+      const qs = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => v && qs.set(k, v));
+      const suffix = qs.toString() ? `?${qs}` : "";
+      return apiFetch<DocumentItem[]>(`${api.documents.base(orgId, wsId)}${suffix}`);
+    },
+    stats: (orgId: string, wsId: string) =>
+      apiFetch<DocumentStats>(`${api.documents.base(orgId, wsId)}/stats`),
+    get: (orgId: string, wsId: string, docId: string) =>
+      apiFetch<DocumentDetail>(`${api.documents.base(orgId, wsId)}/${docId}`),
+    chunks: (orgId: string, wsId: string, docId: string, offset = 0, limit = 50) =>
+      apiFetch<ChunkPage>(`${api.documents.base(orgId, wsId)}/${docId}/chunks?offset=${offset}&limit=${limit}`),
+    reprocess: (orgId: string, wsId: string, docId: string) =>
+      apiFetch<DocumentItem>(`${api.documents.base(orgId, wsId)}/${docId}/reprocess`, { method: "POST" }),
+    remove: (orgId: string, wsId: string, docId: string) =>
+      apiFetch<void>(`${api.documents.base(orgId, wsId)}/${docId}`, { method: "DELETE" }),
+    fileUrl: (orgId: string, wsId: string, docId: string) =>
+      `${API_BASE}${api.documents.base(orgId, wsId)}/${docId}/file`,
+    downloadUrl: (orgId: string, wsId: string, docId: string) =>
+      `${API_BASE}${api.documents.base(orgId, wsId)}/${docId}/download`,
+  },
 };
+
+/**
+ * Upload one file with progress reporting. fetch() can't report upload
+ * progress, so this uses XMLHttpRequest.
+ */
+export function uploadDocument(
+  orgId: string,
+  wsId: string,
+  file: File,
+  onProgress: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<UploadResult> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}${api.documents.base(orgId, wsId)}`);
+    xhr.withCredentials = true;
+    xhr.responseType = "json";
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response as UploadResult);
+      else reject(new ApiError(xhr.status, messageFromDetail(xhr.response, xhr.status), xhr.response));
+    };
+    xhr.onerror = () => reject(new ApiError(0, "Network error during upload."));
+    xhr.onabort = () => reject(new ApiError(0, "Upload cancelled."));
+    signal?.addEventListener("abort", () => xhr.abort());
+    const form = new FormData();
+    form.append("files", file);
+    xhr.send(form);
+  });
+}

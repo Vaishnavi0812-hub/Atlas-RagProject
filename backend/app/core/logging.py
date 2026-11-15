@@ -12,5 +12,5 @@ def configure_logging() -> None:
         stream=sys.stdout,
     )
     # Keep chatty third-party loggers quiet.
-    for noisy in ("neo4j", "httpx", "httpcore", "asyncio", "multipart"):
+    for noisy in ("neo4j", "httpx", "httpcore", "asyncio", "multipart", "watchfiles", "google_genai"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

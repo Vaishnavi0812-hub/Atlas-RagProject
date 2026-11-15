@@ -1,9 +1,10 @@
 import { Navigate, createBrowserRouter, RouterProvider } from "react-router-dom";
-import { BarChart3, FileStack, FlaskConical, MessagesSquare, Network, Scale } from "lucide-react";
+import { BarChart3, FlaskConical, MessagesSquare, Network, Scale } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { RedirectIfAuthed, RequireAuth } from "@/components/auth/Guards";
 import { TenantProvider } from "@/context/TenantContext";
 import { OverviewPage } from "@/pages/OverviewPage";
+import { DocumentsPage } from "@/pages/DocumentsPage";
 import { SystemPage } from "@/pages/SystemPage";
 import { UpcomingPage } from "@/pages/UpcomingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -55,20 +56,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <OverviewPage /> },
       { path: "system", element: <SystemPage /> },
-      {
-        path: "documents",
-        element: (
-          <UpcomingPage
-            eyebrow="Workspace · Documents"
-            title="Document library"
-            description="Upload contracts, reports and policies. Each file is extracted, chunked, embedded and mapped into the knowledge graph."
-            icon={FileStack}
-            emptyTitle="No documents yet"
-            emptyDescription="Once ingestion is live, uploaded PDF, DOCX, TXT and Markdown files will appear here with processing status, chunk counts and extracted entities."
-            stage={3}
-          />
-        ),
-      },
+      { path: "documents", element: <DocumentsPage /> },
       {
         path: "graph",
         element: (
@@ -154,8 +142,16 @@ const router = createBrowserRouter([
       { path: "*", element: <NotFoundPage /> },
     ],
   },
-]);
+], {
+  future: {
+    v7_relativeSplatPath: true,
+    v7_fetcherPersist: true,
+    v7_normalizeFormMethod: true,
+    v7_partialHydration: true,
+    v7_skipActionErrorRevalidation: true,
+  },
+});
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
 }

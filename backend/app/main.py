@@ -13,6 +13,7 @@ from app.db.neo4j import close_neo4j, init_neo4j_schema
 from app.db.qdrant import close_qdrant, ensure_collection
 from app.db.redis import close_redis
 from app.db.session import engine
+from app.ingestion.queue import close_queue
 
 configure_logging()
 logger = logging.getLogger("atlas")
@@ -29,6 +30,7 @@ async def lifespan(_: FastAPI):
             logger.exception("Failed to initialise %s on startup", name)
     logger.info("%s API started (%s)", settings.app_name, settings.environment)
     yield
+    await close_queue()
     await close_neo4j()
     await close_qdrant()
     await close_redis()

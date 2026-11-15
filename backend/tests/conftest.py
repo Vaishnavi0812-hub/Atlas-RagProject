@@ -10,6 +10,10 @@ import re
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["BCRYPT_ROUNDS"] = "4"
+# Offline deterministic embeddings, and file/vector stores separate from dev data.
+os.environ["EMBEDDING_PROVIDER"] = "hash"
+os.environ["STORAGE_DIR"] = "/tmp/atlas-test-storage"
+os.environ["QDRANT_COLLECTION"] = "atlas_chunks_test"
 _db_url = os.environ.get(
     "DATABASE_URL", "postgresql+asyncpg://atlas:atlas_dev_password@localhost:5442/atlas"
 )
@@ -51,6 +55,10 @@ async def _prepare_database() -> None:
         await connection.run_sync(Base.metadata.drop_all)
         await connection.run_sync(Base.metadata.create_all)
     await engine.dispose()
+    # Start every run with an empty test collection.
+    client = qdrant_module.get_qdrant()
+    if await client.collection_exists(os.environ["QDRANT_COLLECTION"]):
+        await client.delete_collection(os.environ["QDRANT_COLLECTION"])
     await qdrant_module.ensure_collection()
     await qdrant_module.close_qdrant()
 
@@ -75,8 +83,36 @@ async def clean_state():
     await neo4j_module.close_neo4j()
 
 
+class RecordingQueue:
+    """Collects enqueued ingestion jobs so tests decide when the worker runs."""
+
+    def __init__(self):
+        self.job_ids: list[uuid.UUID] = []
+
+    async def enqueue_ingestion(self, job_id: uuid.UUID) -> None:
+        self.job_ids.append(job_id)
+
+    async def drain(self) -> list[str]:
+        from app.ingestion.pipeline import process_document
+
+        results = []
+        while self.job_ids:
+            results.append(await process_document(self.job_ids.pop(0)))
+        return results
+
+
 @pytest.fixture
-async def client():
+def job_queue():
+    from app.ingestion.queue import get_job_queue
+
+    queue = RecordingQueue()
+    app.dependency_overrides[get_job_queue] = lambda: queue
+    yield queue
+    app.dependency_overrides.pop(get_job_queue, None)
+
+
+@pytest.fixture
+async def client(job_queue):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 

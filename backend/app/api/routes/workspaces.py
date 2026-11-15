@@ -22,6 +22,7 @@ from app.schemas.workspace import (
     WorkspaceOut,
     WorkspacePermissions,
     WorkspaceUpdate,
+    resolve_workspace_settings,
 )
 from app.services.activity import record_activity
 from app.services.slugs import unique_slug
@@ -43,6 +44,7 @@ def _out(ws: Workspace, role: Role) -> WorkspaceOut:
         created_at=ws.created_at,
         role=role,
         permissions=WorkspacePermissions(**workspace_capabilities(role)),
+        settings=resolve_workspace_settings(ws.settings),
     )
 
 
@@ -108,13 +110,15 @@ async def update_workspace(
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceOut:
     ws = ctx.workspace
-    changes = payload.model_dump(exclude_unset=True)
-    if "name" in changes and changes["name"] and changes["name"] != ws.name:
+    changes = payload.model_dump(exclude_unset=True, exclude={"settings"})
+    if changes.get("name") and changes["name"] != ws.name:
         ws.slug = await _slug_for(db, ws.organization_id, changes["name"], exclude=ws.id)
     for field, value in changes.items():
-        if field == "name" and value is None:
-            continue
-        setattr(ws, field, value)
+        if value is not None or field == "description":
+            setattr(ws, field, value)
+    if payload.settings is not None:
+        ws.settings = payload.settings.model_dump()
+        changes["settings"] = True
     if changes:
         record_activity(
             db,

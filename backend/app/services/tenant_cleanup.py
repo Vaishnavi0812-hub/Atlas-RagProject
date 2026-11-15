@@ -13,6 +13,7 @@ from qdrant_client.http import models as qm
 from app.core.config import settings
 from app.db.neo4j import get_neo4j_driver
 from app.db.qdrant import get_qdrant
+from app.ingestion import storage
 
 logger = logging.getLogger(__name__)
 
@@ -58,3 +59,6 @@ async def purge_tenant_data(
     except Exception as exc:  # noqa: BLE001
         logger.exception("Tenant cleanup failed (org=%s, ws=%s)", organization_id, workspace_id)
         raise TenantCleanupError("Could not remove data from the vector or graph store.") from exc
+
+    # Original uploaded files.
+    storage.delete_tenant_files(organization_id, workspace_id)

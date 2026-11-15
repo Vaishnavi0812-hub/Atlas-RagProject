@@ -53,11 +53,21 @@ class Settings(BaseSettings):
     # --- File storage ---
     storage_dir: str = "./storage"
     max_upload_mb: int = 50
+    max_files_per_upload: int = 20
+
+    # --- Ingestion ---
+    default_chunk_size: int = 1200  # characters
+    default_chunk_overlap: int = 200  # characters
+    embedding_batch_size: int = 64
+    ingestion_job_timeout_seconds: int = 30 * 60
+    worker_max_jobs: int = 4
 
     # --- AI providers ---
     llm_provider: str = "gemini"
     llm_model: str = "gemini-2.5-flash"
     gemini_api_key: str = ""
+    # "gemini" in normal use; "hash" is an offline, deterministic provider used
+    # by the test suite (no network, no API key).
     embedding_provider: str = "gemini"
     embedding_model: str = "gemini-embedding-001"
     embedding_dimensions: int = 768
